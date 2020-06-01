@@ -64,11 +64,10 @@ def rename_states(mx_states):
     return [w.replace('Queretaro', 'Querétaro') for w in mx_states]
 
 
+
 def save_covid_db(mx_states, new_dates, print_all=1):
-    new_dates_ = list(new_dates)
     
-    lastdate = new_dates_[len(new_dates_)-1]
-    with open("data/covid19_mx_db_all"+".csv", "w") as outfile:
+    with open("data/covid19_mx_db_all.csv", "w") as outfile:
         csvwriter = csv.writer(outfile, delimiter=",")
 
         if print_all:
@@ -84,11 +83,47 @@ def save_covid_db(mx_states, new_dates, print_all=1):
                     csvwriter.writerow([state, date, confirmed[idx], deaths[idx]])
                 idx = idx + 1
 
+def save_time_series(mx_states, new_dates, list_cases, filename):
+    with open(filename,"w") as outfile:
+        csvwriter = csv.writer(outfile, delimiter=",")
+        csvwriter.writerow(["Estados"] + new_dates)
+
+        rsmatrix = np.reshape(list_cases, (len(mx_states),len(new_dates)))
+        for i in range(0,len(mx_states)):
+            csvwriter.writerow([mx_states[i]] + list(rsmatrix[i]))
+
+def save_time_series_percentajes(mx_states, new_dates, list_cases, filename):
+
+    list_cases = [float(i) for i in list_cases]
+    rsmatrix = np.reshape(list_cases, (len(mx_states),len(new_dates)))
+    for j in range(0,len(new_dates)):
+        dtotal = float(sum(rsmatrix[:,j]))
+        if dtotal > 0:
+            rsmatrix[:,j] = (rsmatrix[:,j]/dtotal)*100.0
+
+    with open(filename,"w") as outfile:
+        csvwriter = csv.writer(outfile, delimiter=",")
+        csvwriter.writerow(["Estados"] + new_dates)
+
+        for i in range(0,len(mx_states)):
+            mylist = list(rsmatrix[i])
+            mylist = [round(i,2) for i in mylist]
+            csvwriter.writerow([mx_states[i]] + mylist)
+
 if __name__ == "__main__":
     read_matrices_files()
     new_vectors()
 
     mx_states = rename_states(mx_states)
     save_covid_db(mx_states, new_dates)
+
+    filename = "data/covid19_confirmed_new_mx.csv"
+    save_time_series(mx_states, new_dates, new_confirmed, filename)
+
+    filename = "data/covid19_confirmed_percentage_mx.csv"
+    save_time_series_percentajes(mx_states, new_dates, confirmed, filename)
+
+    filename = "data/covid19_deaths_percentage_mx.csv"
+    save_time_series_percentajes(mx_states, new_dates, deaths, filename)
 
     print("The database has been generated")
